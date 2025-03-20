@@ -37,7 +37,7 @@ function App() {
                 }>
                   <Route index element={<Home />} />
                   <Route path="/about" element={<About />} />
-                  <Route path="/calculateForm" element={<CalculateForm />} />
+                  <Route path="/calculate" element={<CalculateForm />} />
                   <Route path="/estimates" element={<Estimates />} />
                   <Route path="/orders" element={<Orders/>} />
                   <Route

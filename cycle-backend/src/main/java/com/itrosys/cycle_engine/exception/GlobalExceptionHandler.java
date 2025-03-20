@@ -73,4 +73,9 @@ public class GlobalExceptionHandler {
 
     }
 
+    @ExceptionHandler(CartNotFound.class)
+    public  ResponseEntity<String> handleCartNotFound(CartNotFound e){
+        return new ResponseEntity<>(e.getMessage(),HttpStatus.NOT_FOUND);
+    }
+
 }

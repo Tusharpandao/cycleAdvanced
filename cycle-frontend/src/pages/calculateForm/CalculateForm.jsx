@@ -90,6 +90,7 @@ function CalculateForm() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
     setIsSubmitted(false);
     const emptyFields = Object.keys(formData).filter(
       (key) => formData[key] === "" && key !== "comments"
@@ -135,7 +136,7 @@ function CalculateForm() {
           getAuthHeader()
         )
         .then((response) => {
-          console.log(response.data);
+          // console.log(response.data);
 
           setPriceData(response.data);
           setIsSubmitted(true);
@@ -166,7 +167,7 @@ function CalculateForm() {
     setItems(null);
     setIsSubmitted(false);
     setError("");
-    console.log("Form cleared:", formData);
+    // console.log("Form cleared:", formData);
   };
 
   return (
