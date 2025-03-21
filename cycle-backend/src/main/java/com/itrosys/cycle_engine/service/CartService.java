@@ -2,8 +2,8 @@ package com.itrosys.cycle_engine.service;
 
 import com.itrosys.cycle_engine.dto.CartRequest;
 import com.itrosys.cycle_engine.dto.CartResponse;
+import com.itrosys.cycle_engine.dto.QuantityCart;
 import com.itrosys.cycle_engine.entity.*;
-import com.itrosys.cycle_engine.exception.BadCredentials;
 import com.itrosys.cycle_engine.exception.BrandNotFound;
 import com.itrosys.cycle_engine.exception.CartNotFound;
 import com.itrosys.cycle_engine.repository.BrandRepository;
@@ -116,6 +116,7 @@ public class CartService {
             BigDecimal totalPartsPrice = partPrice.multiply(BigDecimal.valueOf(cart.getQuantity()));
 
             CartResponse response = new CartResponse(
+                    cart.getCartId(),
                     cart.getBrand().getBrandName(),
                     cart.getQuantity(),
                     cart.getThumbnail(),
@@ -128,6 +129,44 @@ public class CartService {
         }
 
         return cartResponses;
+    }
+    public String handleUpdateQuantity(QuantityCart quantityCart) {
+        Cart cart = cartRepository.findById(quantityCart.getCartId())
+                .orElseThrow(() -> new CartNotFound("Cart with cartId " + quantityCart.getCartId() + " not found"));
+
+        if (quantityCart.getQuantity() <= 0) {
+            throw new IllegalArgumentException("Quantity must be greater than zero");
+        }
+
+        cart.setQuantity(quantityCart.getQuantity());
+        cartRepository.save(cart);
+
+        return "Cart quantity updated successfully to " + quantityCart.getQuantity();
+    }
+
+    public String deleteCartItemById(Long cartId) {
+        Cart cart = cartRepository.findById(cartId)
+                .orElseThrow(() -> new CartNotFound("Cart with cartId " + cartId + " not found"));
+
+        cartRepository.delete(cart);
+
+        return "Cart with cartId " + cartId + " deleted successfully.";
+    }
+
+    public String clearCartForUser(String userName) {
+        Users user = userRepository.findByUsername(userName);
+        if (user == null) {
+            throw new UsernameNotFoundException("User Not Found: " + userName);
+        }
+
+        List<Cart> carts = cartRepository.findByUser(user);
+        if (carts.isEmpty()) {
+            return "No carts found for user: " + userName;
+        }
+
+        cartRepository.deleteAll(carts);
+
+        return "All carts for user " + userName + " have been deleted successfully.";
     }
 
 }

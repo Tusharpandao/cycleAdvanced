@@ -5,6 +5,7 @@ import { RxCrossCircled } from "react-icons/rx";
 import { useNavigate } from "react-router-dom";
 import logo from "../../assets/logo.png";
 import { useAuth } from "../../hooks/useAuth";
+import { useOrders } from "../../context/OrderContext";
 import Swal from "sweetalert2";
 import axios from "axios";
 import DomainName from "../../utils/config";
@@ -12,9 +13,9 @@ import { getAuthHeader } from "../../utils/auth";
 
 const Cart = () => {
   const { userName, userEmail } = useAuth();
+  const { addOrder } = useOrders();
   let [cart, setCart] = useState([]);
   let [totalPrice, setTotalPrice] = useState(0);
-  let [itemToRemoveId, setItemToRemoveId] = useState(null);
   let [totalItemsQuantity, setTotalItemsQuantity] = useState(0);
   let [promoCode, setPromoCode] = useState("");
   let [discountApplied, setDiscountApplied] = useState(false);
@@ -23,7 +24,6 @@ const Cart = () => {
   let [shippingCost, setShippingCost] = useState(200); // Default shipping cost
   let [gstAmount, setGstAmount] = useState(0);
   let [selectedItem, setSelectedItem] = useState(null);
-  let [visibleItems, setVisibleItems] = useState(3); // New state for visible items
 
   let navigate = useNavigate();
 
@@ -36,8 +36,17 @@ const Cart = () => {
       );
       setCart(response.data);
     } catch (error) {
-      console.error("Error fetching cart:", error);
-      toast.error("Failed to fetch cart items");
+      // Only show error if it hasn't been handled by interceptor
+      if (!error.isHandled) {
+        if (error.response && error.response.status === 401) {
+          navigate('/login');
+        } else {
+          // Set cart to empty array to show empty cart message
+          setCart([]);
+        }
+        // Mark error as handled
+        error.isHandled = true;
+      }
     }
   };
 
@@ -86,14 +95,13 @@ const Cart = () => {
     setTotalItemsQuantity(getTotalQuantity);
   }, [cart, promoCode, discountApplied, totalItemsQuantity, shippingCost]);
 
-  const handleInc = async (item) => {
+  const handleIncrement = async (item) => {
     try {
       // Call API to update quantity
       await axios.patch(
         `${DomainName}/cart/update-quantity`,
         {
-          itemIds: Object.values(item.parts).map((part) => part.itemId),
-          brand: item.brand,
+          cartId: item.cartId,
           quantity: item.quantity + 1,
         },
         getAuthHeader()
@@ -106,15 +114,14 @@ const Cart = () => {
     }
   };
 
-  const handleDec = async (item) => {
+  const handleDecrement = async (item) => {
     if (item.quantity > 1) {
       try {
         // Call API to update quantity
         await axios.patch(
           `${DomainName}/cart/update-quantity`,
           {
-            itemIds: Object.values(item.parts).map((part) => part.itemId),
-            brand: item.brand,
+            cartId: item.cartId,
             quantity: item.quantity - 1,
           },
           getAuthHeader()
@@ -139,14 +146,10 @@ const Cart = () => {
         }
 
         try {
+         
           // Call API to remove item
-          await axios.delete(`${DomainName}/cart/remove`, {
-            data: {
-              itemIds: Object.values(item.parts).map((part) => part.itemId),
-              brand: item.brand,
-            },
-            ...getAuthHeader(),
-          });
+          await axios.delete(`${DomainName}/cart/remove/${item.cartId}`, getAuthHeader());
+          
 
           await fetchCart(); // Refresh cart data
           toast.success("Item removed from cart");
@@ -158,8 +161,20 @@ const Cart = () => {
     }
   };
 
+
+  const handleRemoveOneCart=async(cartId)=>{
+    try{
+      await axios.delete(`${DomainName}/cart/remove/${cartId}`,getAuthHeader());
+      await fetchCart();
+    }catch(error){
+      console.error("Error removing item:",error);
+      toast.error("Failed to remove item");
+    }
+   
+  };
+
   const applyPromoCode = () => {
-    if (promoCode.toUpperCase() === "NEW50") {
+    if (promoCode.toUpperCase() === "NEW5") {
       if (!discountApplied) {
         setDiscountApplied(true);
         toast.success("5% Discount Applied Successfully!");
@@ -199,44 +214,82 @@ const Cart = () => {
     });
   };
 
-  const handleCheckout = async () => {
-    const isLoaded = await loadRazorpay();
-    if (!isLoaded) {
-      toast.error("Failed to load Razorpay. Please try again.");
-      return;
+  const handleOrder =async ()=>{
+    try {
+      // First clear cart in backend
+      await axios.delete(`${DomainName}/cart/clear/${userName}`, getAuthHeader());
+
+      // After successful cart clearing, add to order context
+      const orderItems = cart.map(item => ({
+        id: item.cartId,
+        title: `${item.brand} Cycle`,
+        thumbnail: item.thumbnail,
+        quantity: item.quantity,
+        price: item.partPrice,
+        parts: item.parts
+      }));
+      
+       await addOrder(orderItems, totalPrice);
+      
+      toast.success("Payment Successful! Order has been placed.");
+      navigate("/orders");
+    } catch (error) {
+      console.error("Error processing order:", error);
+      toast.error("Error processing order");
     }
+  }
 
-    const options = {
-      key: "rzp_test_5C7srwxYlDtKK8",
-      amount: totalPrice * 100,
-      currency: "INR",
-      name: "Cycle Pricing Engine",
-      description: "Purchase from Cycle Pricing Engine",
-      image: logo,
-      handler: async function (response) {
-        console.log("Payment successful:", response);
-        try {
-          // Clear cart after successful payment
-          await axios.delete(`${DomainName}/cart/clear`, getAuthHeader());
-          toast.success("Payment Successful! Order has been placed.");
-          navigate("/orders");
-        } catch (error) {
-          console.error("Error clearing cart:", error);
-          toast.error("Error processing order");
-        }
-      },
-      prefill: {
-        name: userName,
-        email: userEmail,
-      },
-      theme: {
-        color: "#28544B",
-      },
-    };
+  // const handleCheckout = async () => {
+  //   // const isLoaded = await loadRazorpay();
+  //   // if (!isLoaded) {
+  //   //   toast.error("Failed to load Razorpay. Please try again.");
+  //   //   return;
+  //   // }
 
-    const rzp = new window.Razorpay(options);
-    rzp.open();
-  };
+  //   // const options = {
+  //   //   key: "rzp_test_5C7srwxYlDtKK8",
+  //   //   amount: totalPrice * 100,
+  //   //   currency: "INR",
+  //   //   name: "Cycle Pricing Engine",
+  //   //   description: "Purchase from Cycle Pricing Engine",
+  //   //   image: logo,
+  //   //   handler: async function (response) {
+  //   //     console.log("Payment successful:", response);
+  //       // try {
+  //       //   // First clear cart in backend
+  //       //   await axios.delete(`${DomainName}/cart/clear/${userName}`, getAuthHeader());
+
+  //       //   // After successful cart clearing, add to order context
+  //       //   const orderItems = cart.map(item => ({
+  //       //     id: item.cartId,
+  //       //     title: `${item.brand} Cycle`,
+  //       //     thumbnail: item.thumbnail,
+  //       //     quantity: item.quantity,
+  //       //     price: item.partPrice,
+  //       //     parts: item.parts
+  //       //   }));
+          
+  //       //    await addOrder(orderItems, totalPrice);
+          
+  //       //   toast.success("Payment Successful! Order has been placed.");
+  //       //   navigate("/orders");
+  //       // } catch (error) {
+  //       //   console.error("Error processing order:", error);
+  //       //   toast.error("Error processing order");
+  //       // }
+  //     }
+  //     // prefill: {
+  //     //   name: userName,
+  //     //   email: userEmail,
+  //     // },
+  //     // theme: {
+  //     //   color: "#28544B",
+  //     // },
+  //   // };
+
+  //   // const rzp = new window.Razorpay(options);
+  //   // rzp.open();
+  // };
 
   const handleCloseModal = () => {
     setSelectedItem(null);
@@ -252,10 +305,6 @@ const Cart = () => {
     { type: "Brakes Type", key: "Brakes" },
     { type: "Chain Assembly", key: "Chain Assembly" },
   ];
-
-  const showMoreItems = () => {
-    setVisibleItems((prevVisible) => prevVisible + 3);
-  };
 
   return (
     <>
@@ -334,7 +383,7 @@ const Cart = () => {
                           </span>
                           <button
                             className="font-semibold hover:text-red-500 text-gray-500 text-sm mt-2 text-left flex items-center gap-1"
-                            onClick={() => handleDec(cartItem)}
+                            onClick={() => handleRemoveOneCart(cartItem.cartId)}
                           >
                             <RxCrossCircled size={16} />
                             Remove
@@ -353,14 +402,14 @@ const Cart = () => {
                           <div className="flex items-center gap-4">
                             <button
                               className="border h-7 w-7 sm:h-9 sm:w-9 rounded-full flex items-center justify-center bg-white shadow-sm hover:bg-gray-50 active:bg-gray-100"
-                              onClick={() => handleDec(cartItem)}
+                              onClick={() => handleDecrement(cartItem)}
                             >
                               -
                             </button>
                             <span className="w-8 text-center text-sm sm:text-base font-medium">{cartItem.quantity}</span>
                             <button
                               className="border h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center bg-white shadow-sm hover:bg-gray-50 active:bg-gray-100"
-                              onClick={() => handleInc(cartItem)}
+                              onClick={() => handleIncrement(cartItem)}
                             >
                               +
                             </button>
@@ -377,14 +426,14 @@ const Cart = () => {
                         <div className="flex items-center justify-center w-1/3 gap-2">
                           <button
                             className="border h-8 w-8 rounded-full flex items-center justify-center bg-white shadow-sm hover:bg-gray-50 active:bg-gray-100 text-gray-600"
-                            onClick={() => handleDec(cartItem)}
+                            onClick={() => handleDecrement(cartItem)}
                           >
                             -
                           </button>
                           <span className="w-8 text-center font-medium">{cartItem.quantity}</span>
                           <button
                             className="border h-8 w-8 rounded-full flex items-center justify-center bg-white shadow-sm hover:bg-gray-50 active:bg-gray-100 text-gray-600"
-                            onClick={() => handleInc(cartItem)}
+                            onClick={() => handleIncrement(cartItem)}
                           >
                             +
                           </button>
@@ -516,7 +565,7 @@ const Cart = () => {
                   </div>
                   <button
                     className="w-full bg-indigo-500 text-white py-3 sm:py-4 px-4 rounded-lg font-semibold hover:bg-indigo-600 active:bg-indigo-700 transition-colors text-sm sm:text-base shadow-sm"
-                    onClick={handleCheckout}
+                    onClick={handleOrder}
                   >
                     Checkout
                   </button>

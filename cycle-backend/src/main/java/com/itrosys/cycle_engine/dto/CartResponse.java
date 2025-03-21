@@ -11,6 +11,7 @@ import java.util.Map;
 @Setter
 @Builder
 public class CartResponse {
+    private Long cartId;
     private String brand;
     private int quantity;
     private String thumbnail;
@@ -18,7 +19,8 @@ public class CartResponse {
     private BigDecimal partPrice;
     private BigDecimal totalPartsPrice;
 
-    public CartResponse(String brand, int quantity, String thumbnail, Map<String, Map<String, Object>> parts, BigDecimal partPrice, BigDecimal totalPartsPrice) {
+    public CartResponse(Long cartId, String brand, int quantity, String thumbnail, Map<String, Map<String, Object>> parts, BigDecimal partPrice, BigDecimal totalPartsPrice) {
+        this.cartId=cartId;
         this.brand = brand;
         this.quantity = quantity;
         this.thumbnail = thumbnail;
