@@ -71,6 +71,12 @@ function Navbar() {
         >
           {t('estimatedPrice')}
         </Link>
+        <Link
+          to="/compare"
+          className="px-4 text-lg p-1 text-[#dbe2e2] hover:bg-[#FF6B35] transition-colors duration-300 rounded"
+        >
+          {t('cyclesComparison')}
+        </Link>
       </span>
 
       {/* Right side items */}
@@ -177,6 +183,13 @@ function Navbar() {
             onClick={() => setIsOpen(false)}
           >
             {t('estimatedPrice')}
+          </Link>
+          <Link
+            to="/compare"
+            className="w-full text-center py-2 hover:bg-[#0f2e64] transition-colors duration-300 rounded"
+            onClick={() => setIsOpen(false)}
+          >
+            {t('cyclesComparison')}
           </Link>
         </div>
       )}

@@ -16,6 +16,7 @@ import { CartProvider } from "./context/CartContext";
 import { OrderProvider } from "./context/OrderContext";
 import Cart from "./pages/cart/Cart";
 import Orders from "./pages/cart/Orders";
+import CyclesComparison from "./pages/cycleComparision/CyclesComparison";
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
                   <Route path="/calculateForm" element={<CalculateForm />} />
                   <Route path="/estimates" element={<Estimates />} />
                   <Route path="/orders" element={<Orders/>} />
+                  <Route path="/compare" element={<CyclesComparison />}/>
                   <Route
                     path="/items"
                     element={

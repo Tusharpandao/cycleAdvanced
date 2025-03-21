@@ -5,6 +5,9 @@ import GiantCycle from "../../assets/Giant.webp";
 import AvonCycle from "../../assets/Avon.jpg";
 import AtlasCycle from "../../assets/Atlas.jpg";
 import SchwinnCycle from "../../assets/Schwinn.png";
+import DomainName from "../../utils/config";
+import { useCart } from "../../context/CartContext";
+import Swal from "sweetalert2";
 
 
 const CycleComparison = () => {
@@ -18,6 +21,7 @@ const CycleComparison = () => {
   const [selectedVariants, setSelectedVariants] = useState({});
   const [previewImages, setPreviewImages] = useState({});
   const [enlargedImage, setEnlargedImage] = useState(null);
+  const { addToCart } = useCart();
   const MAX_COMPARISON_ITEMS = 4;
 
   // Static cycle data with Schwinn added
@@ -348,13 +352,14 @@ const CycleComparison = () => {
     schwinn: ["standard", "deluxe", "premium", "touring"],
   };
 
+
   useEffect(() => {
     // Fetch brands from API
     const fetchBrands = async () => {
       setLoading(true);
       setErrorMessage("");
       try {
-        const response = await fetch("http://localhost:8080/brand/brands", {
+        const response = await fetch(`${DomainName}/brand/brands`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -384,6 +389,55 @@ const CycleComparison = () => {
   }, []);
 
 
+
+const handleAddToCart = (cycle) => {
+  // Create a cart item from the cycle data
+  const cartItem = {
+    id: `cycle-${cycle.id}-${Date.now()}`, // Generate a unique ID
+    title: `${cycle.brand} ${cycle.model} ${cycle.variant}`,
+    price: cycle.price,
+    thumbnail: cycle.image,
+    brand: cycle.brand,
+    stock: 10,
+    quantity: 1,
+    estimateDetails: {
+      formData: {
+        brand: cycle.brand,
+        frame: cycle.specifications.frame,
+        handlebar: cycle.specifications.handlebar,
+        seating: cycle.specifications.seating,
+        wheel: cycle.specifications.wheel,
+        tyre: cycle.specifications.tyre,
+        brakes: cycle.specifications.brakes,
+        chainAssembly: cycle.specifications.chainAssembly
+      },
+      prices: {
+        frame: cycle.price * 0.3, // 30% of the cycle price
+        components: cycle.price * 0.7
+      },
+      totalPartsPrice: cycle.price * 0.85,
+      gstAmount: cycle.price * 0.15,
+      finalPrice: cycle.price
+    }
+  };
+
+  addToCart(cartItem);
+
+  // For now, let's just log it to console
+  console.log("Added to cart:", cartItem);  
+
+  const Toast = Swal.mixin({
+    toast: true,
+    position: "top-end",
+    showConfirmButton: false,
+    timer: 1500,
+    timerProgressBar: true,
+  });
+  Toast.fire({
+    icon: "success",
+    title: "Added to cart successfully!",
+  });
+};
   
 
   // Function to get available variants for a brand

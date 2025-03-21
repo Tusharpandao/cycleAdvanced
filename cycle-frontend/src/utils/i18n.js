@@ -23,6 +23,7 @@ const resources = {
       settings: 'Settings',
       calculatePrice: 'Calculate Price',
       estimatedPrice: 'Estimated Price',
+      cyclesComparison: 'Cycles Comparison',
       orders: 'Orders',
       cycle:'Cycle',
       PricingEngine: ' Pricing Engine',
@@ -114,7 +115,8 @@ const resources = {
       orders: 'ऑर्डर',
       cycle:'साइकिल',
       PricingEngine: ' मूल्य इंजन',
-      
+      cyclesComparison: 'साइकिल तुलना',
+
       // Messages
       loginSuccess: 'सफलतापूर्वक लॉग इन किया गया',
       loginError: 'लॉग इन विफल',
