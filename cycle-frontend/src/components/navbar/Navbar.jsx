@@ -60,10 +60,10 @@ function Navbar() {
           {t('home')}
         </Link>
         <Link
-          to="/calculateForm"
+          to="/calculate"
           className="px-4 text-lg p-1 text-[#dbe2e2] hover:bg-[#FF6B35] transition-colors duration-300 rounded"
         >
-          {t('calculatePrice')}
+          {t('calculate')}
         </Link>
         <Link
           to="/estimates"
@@ -86,17 +86,18 @@ function Navbar() {
           <LanguageSwitcher />
         </div>
         
-        {cartItemCount > 0 && (
+        
           <Link
             to="/cart"
             className="px-4 text-lg p-1 text-[#dbe2e2] hover:bg-[#776862] transition-colors duration-300 rounded flex items-center relative"
           >
             <FiShoppingCart className="text-2xl" />
+            {cartItemCount > 0 && (
             <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
               {cartItemCount}
-            </span>
+            </span>)}
           </Link>
-        )}
+        
 
         {/* User Section with Dropdown */}
         <div className="relative" ref={dropdownRef}>
