@@ -1,28 +1,47 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { FiMenu, FiX, FiLogOut, FiShoppingCart } from "react-icons/fi";
+import { FaCaretDown } from "react-icons/fa6";
 import { CgProfile } from "react-icons/cg";
 import { useAuth } from "../../hooks/useAuth";
 import { useCart } from "../../context/CartContext";
 import { LuBaggageClaim } from "react-icons/lu";
 import LanguageSwitcher from "../LanguageSwitcher";
 import { useTranslation } from "react-i18next";
+import { hasManagementAccess } from "../../utils/auth";
 
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showManageDropdown, setShowManageDropdown] = useState(false);
   const dropdownRef = useRef(null);
+  const manageDropdownRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { userName, userEmail, logout } = useAuth();
-  const { cart } = useCart();
+  const { cartItemCount } = useCart();
   const { t } = useTranslation();
-  const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
+
+  // Add click outside handler for manage dropdown
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (manageDropdownRef.current && !manageDropdownRef.current.contains(event.target)) {
+        setShowManageDropdown(false);
+      }
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Add this useEffect to handle auth state changes
   useEffect(() => {
     const handleAuthChange = () => {
       setShowDropdown(false);
+      setShowManageDropdown(false);
     };
     handleAuthChange();
   }, [location, userName]);
@@ -66,11 +85,40 @@ function Navbar() {
           {t('calculate')}
         </Link>
         <Link
-          to="/estimates"
+          to="/about"
           className="px-4 text-lg p-1 text-[#dbe2e2] hover:bg-[#FF6B35] transition-colors duration-300 rounded"
         >
-          {t('estimatedPrice')}
+          {t('About')}
         </Link>
+        {hasManagementAccess() && (
+          <div className="relative" ref={manageDropdownRef}>
+            <button
+              onClick={() => setShowManageDropdown(!showManageDropdown)}
+              className="px-4 text-lg  p-1 text-[#dbe2e2] hover:bg-[#FF6B35] transition-colors duration-300 rounded flex items-center gap-1"
+            >
+              Manage
+              <span className={`transition-transform  duration-200 ${showManageDropdown ? 'rotate-180' : ''}`}><FaCaretDown /></span>
+            </button>
+            {showManageDropdown && (
+              <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-2 z-50">
+                <Link
+                  to="/brand"
+                  onClick={() => setShowManageDropdown(false)}
+                  className="block px-4 py-2 text-gray-800 hover:bg-gray-100"
+                >
+                  Brands
+                </Link>
+                <Link
+                  to="/items"
+                  onClick={() => setShowManageDropdown(false)}
+                  className="block px-4 py-2 text-gray-800 hover:bg-gray-100"
+                >
+                  Items
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
       </span>
 
       {/* Right side items */}
@@ -80,18 +128,17 @@ function Navbar() {
           <LanguageSwitcher />
         </div>
         
-        
-          <Link
-            to="/cart"
-            className="px-4 text-lg p-1 text-[#dbe2e2] hover:bg-[#776862] transition-colors duration-300 rounded flex items-center relative"
-          >
-            <FiShoppingCart className="text-2xl" />
-            {cartItemCount > 0 && (
+        <Link
+          to="/cart"
+          className="px-4 text-lg p-1 text-[#dbe2e2] hover:bg-[#776862] transition-colors duration-300 rounded flex items-center relative"
+        >
+          <FiShoppingCart className="text-2xl" />
+          {cartItemCount > 0 && (
             <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
               {cartItemCount}
-            </span>)}
-          </Link>
-        
+            </span>
+          )}
+        </Link>
 
         {/* User Section with Dropdown */}
         <div className="relative" ref={dropdownRef}>
@@ -157,7 +204,6 @@ function Navbar() {
       {/* Mobile Menu - Shown when isOpen is true */}
       {isOpen && (
         <div className="absolute top-16 left-0 w-full bg-[#4f46e5] p-4 flex flex-col items-center md:hidden">
-         
           <Link
             to="/"
             className="w-full text-center py-2 hover:bg-[#0f2e64] transition-colors duration-300 rounded"
@@ -166,19 +212,37 @@ function Navbar() {
             {t('home')}
           </Link>
           <Link
-            to="/calculateForm"
+            to="/calculate"
             className="w-full text-center py-2 hover:bg-[#0f2e64] transition-colors duration-300 rounded"
             onClick={() => setIsOpen(false)}
           >
-            {t('calculatePrice')}
+            {t('calculate')}
           </Link>
           <Link
-            to="/estimates"
+            to="/about"
             className="w-full text-center py-2 hover:bg-[#0f2e64] transition-colors duration-300 rounded"
             onClick={() => setIsOpen(false)}
           >
-            {t('estimatedPrice')}
+            {t('About')}
           </Link>
+          {hasManagementAccess() && (
+            <>
+              <Link
+                to="/brand"
+                className="w-full text-center py-2 hover:bg-[#0f2e64] transition-colors duration-300 rounded"
+                onClick={() => setIsOpen(false)}
+              >
+                 Brands
+              </Link>
+              <Link
+                to="/items"
+                className="w-full text-center py-2 hover:bg-[#0f2e64] transition-colors duration-300 rounded"
+                onClick={() => setIsOpen(false)}
+              >
+                 Items
+              </Link>
+            </>
+          )}
         </div>
       )}
     </nav>

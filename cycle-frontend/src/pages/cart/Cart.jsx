@@ -2,49 +2,55 @@ import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { FaLongArrowAltLeft } from "react-icons/fa";
 import { RxCrossCircled } from "react-icons/rx";
+import { MdDelete } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import logo from "../../assets/logo.png";
 import { useAuth } from "../../hooks/useAuth";
 import { useOrders } from "../../context/OrderContext";
-import Swal from "sweetalert2";
-import axios from "axios";
-import DomainName from "../../utils/config";
-import { getAuthHeader } from "../../utils/auth";
+import { useCart } from "../../context/CartContext";
+import { cartAPI } from "../../utils/api";
+import React from "react";
 
 const Cart = () => {
   const { userName, userEmail } = useAuth();
+  const { updateCartCount } = useCart();
   const { addOrder } = useOrders();
-  let [cart, setCart] = useState([]);
-  let [totalPrice, setTotalPrice] = useState(0);
-  let [totalItemsQuantity, setTotalItemsQuantity] = useState(0);
-  let [promoCode, setPromoCode] = useState("");
-  let [discountApplied, setDiscountApplied] = useState(false);
-  let [discountAmount, setDiscountAmount] = useState(0);
-  let [subtotal, setSubtotal] = useState(0);
-  let [shippingCost, setShippingCost] = useState(200); // Default shipping cost
-  let [gstAmount, setGstAmount] = useState(0);
-  let [selectedItem, setSelectedItem] = useState(null);
+  const [cart, setCart] = useState([]);
+  const [totalPrice, setTotalPrice] = useState(0);
+  const [totalItemsQuantity, setTotalItemsQuantity] = useState(0);
+  const [promoCode, setPromoCode] = useState("");
+  const [discountApplied, setDiscountApplied] = useState(false);
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [subtotal, setSubtotal] = useState(0);
+  const [shippingCost, setShippingCost] = useState(200);
+  const [gstAmount, setGstAmount] = useState(0);
+  const [selectedItem, setSelectedItem] = useState(null);
 
-  let navigate = useNavigate();
+  const navigate = useNavigate();
+
+  // Memoize getTotalQuantity function
+  const getTotalQuantity = React.useCallback(() => {
+    return cart.reduce((total, item) => total + item.quantity, 0);
+  }, [cart]);
+
+  // Update cart count whenever cart changes
+  useEffect(() => {
+    updateCartCount(getTotalQuantity());
+  }, [cart, updateCartCount, getTotalQuantity]);
 
   // Fetch cart data
   const fetchCart = async () => {
     try {
-      const response = await axios.get(
-        `${DomainName}/cart/getAll`,
-        getAuthHeader()
-      );
-      setCart(response.data);
+      const data = await cartAPI.getAllCartItems();
+      setCart(data);
     } catch (error) {
-      // Only show error if it hasn't been handled by interceptor
       if (!error.isHandled) {
         if (error.response && error.response.status === 401) {
           navigate('/login');
         } else {
-          // Set cart to empty array to show empty cart message
           setCart([]);
+          updateCartCount(0);
         }
-        // Mark error as handled
         error.isHandled = true;
       }
     }
@@ -52,22 +58,24 @@ const Cart = () => {
 
   useEffect(() => {
     fetchCart();
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
 
   useEffect(() => {
     // Calculate total price for all items in the cart (initial and after discount)
     const calculateTotalPrice = () => {
-      let total = 0;
-      cart.forEach((cartItem) => {
-        total += cartItem.totalPartsPrice;
-      });
-      setSubtotal(total);
+      // Calculate subtotal
+      const newSubtotal = cart.reduce((total, cartItem) => total + cartItem.totalPartsPrice, 0);
+      setSubtotal(newSubtotal);
+
+      // Start with subtotal
+      let total = newSubtotal;
 
       // Apply discount if promo code is active
       if (discountApplied) {
         const discount = total * 0.05;
         setDiscountAmount(discount);
-        total = total - discount;
+        total -= discount;
       } else {
         setDiscountAmount(0);
       }
@@ -77,37 +85,22 @@ const Cart = () => {
       setGstAmount(gst);
       total += gst;
 
-      // Add shipping cost to total
-      total += shippingCost;
+      // Add shipping cost to total only if subtotal is less than 10000
+      if (newSubtotal < 10000) {
+        total += shippingCost;
+      }
 
       setTotalPrice(total);
     };
 
     calculateTotalPrice();
-
-    const getTotalQuantity = () => {
-      let totalQuantity = 0;
-      cart.forEach((item) => {
-        totalQuantity += item.quantity;
-      });
-      return totalQuantity;
-    };
-    setTotalItemsQuantity(getTotalQuantity);
-  }, [cart, promoCode, discountApplied, totalItemsQuantity, shippingCost]);
+    setTotalItemsQuantity(getTotalQuantity());
+  }, [cart, discountApplied, shippingCost, getTotalQuantity]);
 
   const handleIncrement = async (item) => {
     try {
-      // Call API to update quantity
-      await axios.patch(
-        `${DomainName}/cart/update-quantity`,
-        {
-          cartId: item.cartId,
-          quantity: item.quantity + 1,
-        },
-        getAuthHeader()
-      );
-
-      await fetchCart(); // Refresh cart data
+      await cartAPI.updateCartQuantity(item.cartId, item.quantity + 1);
+      await fetchCart();
     } catch (error) {
       console.error("Error updating quantity:", error);
       toast.error("Failed to update quantity");
@@ -117,60 +110,32 @@ const Cart = () => {
   const handleDecrement = async (item) => {
     if (item.quantity > 1) {
       try {
-        // Call API to update quantity
-        await axios.patch(
-          `${DomainName}/cart/update-quantity`,
-          {
-            cartId: item.cartId,
-            quantity: item.quantity - 1,
-          },
-          getAuthHeader()
-        );
-
-        await fetchCart(); // Refresh cart data
+        await cartAPI.updateCartQuantity(item.cartId, item.quantity - 1);
+        await fetchCart();
       } catch (error) {
         console.error("Error updating quantity:", error);
         toast.error("Failed to update quantity");
       }
     } else {
-      Swal.fire({
-        title: "Are you sure you want to remove it?",
-        text: "You have reached the minimum quantity for this product.",
-        icon: "question",
-        showCancelButton: true,
-        confirmButtonText: "Yes, remove",
-        cancelButtonText: "No, cancel",
-      }).then(async (result) => {
-        if (!result.isConfirmed) {
-          return;
-        }
-
-        try {
-         
-          // Call API to remove item
-          await axios.delete(`${DomainName}/cart/remove/${item.cartId}`, getAuthHeader());
-          
-
-          await fetchCart(); // Refresh cart data
-          toast.success("Item removed from cart");
-        } catch (error) {
-          console.error("Error removing item:", error);
-          toast.error("Failed to remove item");
-        }
-      });
+      try {
+        await cartAPI.removeCartItem(item.cartId);
+        await fetchCart();
+        toast.success("Item removed from cart");
+      } catch (error) {
+        console.error("Error removing item:", error);
+        toast.error("Failed to remove item");
+      }
     }
   };
 
-
-  const handleRemoveOneCart=async(cartId)=>{
-    try{
-      await axios.delete(`${DomainName}/cart/remove/${cartId}`,getAuthHeader());
+  const handleRemoveOneCart = async (cartId) => {
+    try {
+      await cartAPI.removeCartItem(cartId);
       await fetchCart();
-    }catch(error){
-      console.error("Error removing item:",error);
+    } catch (error) {
+      console.error("Error removing item:", error);
       toast.error("Failed to remove item");
     }
-   
   };
 
   const applyPromoCode = () => {
@@ -214,12 +179,9 @@ const Cart = () => {
     });
   };
 
-  const handleOrder =async ()=>{
+  const handleOrder = async () => {
     try {
-      // First clear cart in backend
-      await axios.delete(`${DomainName}/cart/clear/${userName}`, getAuthHeader());
-
-      // After successful cart clearing, add to order context
+      await cartAPI.clearCart(userName);
       const orderItems = cart.map(item => ({
         id: item.cartId,
         title: `${item.brand} Cycle`,
@@ -229,67 +191,63 @@ const Cart = () => {
         parts: item.parts
       }));
       
-       await addOrder(orderItems, totalPrice);
-      
+      await addOrder(orderItems, totalPrice);
+      updateCartCount(0);
       toast.success("Payment Successful! Order has been placed.");
       navigate("/orders");
     } catch (error) {
       console.error("Error processing order:", error);
       toast.error("Error processing order");
     }
-  }
+  };
 
-  // const handleCheckout = async () => {
-  //   // const isLoaded = await loadRazorpay();
-  //   // if (!isLoaded) {
-  //   //   toast.error("Failed to load Razorpay. Please try again.");
-  //   //   return;
-  //   // }
+  // eslint-disable-next-line no-unused-vars
+  const handleCheckout = async () => {
+    const isLoaded = await loadRazorpay();
+    if (!isLoaded) {
+      toast.error("Failed to load Razorpay. Please try again.");
+      return;
+    }
 
-  //   // const options = {
-  //   //   key: "rzp_test_5C7srwxYlDtKK8",
-  //   //   amount: totalPrice * 100,
-  //   //   currency: "INR",
-  //   //   name: "Cycle Pricing Engine",
-  //   //   description: "Purchase from Cycle Pricing Engine",
-  //   //   image: logo,
-  //   //   handler: async function (response) {
-  //   //     console.log("Payment successful:", response);
-  //       // try {
-  //       //   // First clear cart in backend
-  //       //   await axios.delete(`${DomainName}/cart/clear/${userName}`, getAuthHeader());
-
-  //       //   // After successful cart clearing, add to order context
-  //       //   const orderItems = cart.map(item => ({
-  //       //     id: item.cartId,
-  //       //     title: `${item.brand} Cycle`,
-  //       //     thumbnail: item.thumbnail,
-  //       //     quantity: item.quantity,
-  //       //     price: item.partPrice,
-  //       //     parts: item.parts
-  //       //   }));
+    const options = {
+      key: "rzp_test_5C7srwxYlDtKK8",
+      amount: totalPrice * 100,
+      currency: "INR",
+      name: "Cycle Pricing Engine",
+      description: "Purchase from Cycle Pricing Engine",
+      image: logo,
+      handler: async function (response) {
+        console.log("Payment successful:", response);
+        try {
+          await cartAPI.clearCart(userName);
+          const orderItems = cart.map(item => ({
+            id: item.cartId,
+            title: `${item.brand} Cycle`,
+            thumbnail: item.thumbnail,
+            quantity: item.quantity,
+            price: item.partPrice,
+            parts: item.parts
+          }));
           
-  //       //    await addOrder(orderItems, totalPrice);
-          
-  //       //   toast.success("Payment Successful! Order has been placed.");
-  //       //   navigate("/orders");
-  //       // } catch (error) {
-  //       //   console.error("Error processing order:", error);
-  //       //   toast.error("Error processing order");
-  //       // }
-  //     }
-  //     // prefill: {
-  //     //   name: userName,
-  //     //   email: userEmail,
-  //     // },
-  //     // theme: {
-  //     //   color: "#28544B",
-  //     // },
-  //   // };
+          await addOrder(orderItems, totalPrice);
+          toast.success("Payment Successful! Order has been placed.");
+          navigate("/orders");
+        } catch (error) {
+          toast.error( error || "Error processing order");
+        }
+      },
+      prefill: {
+        name: userName,
+        email: userEmail,
+      },
+      theme: {
+        color: "#28544B",
+      },
+    };  
 
-  //   // const rzp = new window.Razorpay(options);
-  //   // rzp.open();
-  // };
+    const rzp = new window.Razorpay(options);
+    rzp.open();
+  };
 
   const handleCloseModal = () => {
     setSelectedItem(null);
@@ -332,7 +290,7 @@ const Cart = () => {
                     Shopping Cart
                   </h1>
                   <h2 className="font-semibold text-base sm:text-lg md:text-xl lg:text-2xl">
-                    {cart.length} Items
+                    {cart.length} Products
                   </h2>
                 </div>
                 
@@ -403,8 +361,13 @@ const Cart = () => {
                             <button
                               className="border h-7 w-7 sm:h-9 sm:w-9 rounded-full flex items-center justify-center bg-white shadow-sm hover:bg-gray-50 active:bg-gray-100"
                               onClick={() => handleDecrement(cartItem)}
+                              aria-label={cartItem.quantity === 1 ? "Remove item" : "Decrease quantity"}
                             >
-                              -
+                              {cartItem.quantity === 1 ? (
+                                <MdDelete className="text-red-500" size={16} />
+                              ) : (
+                                <span className="text-gray-600">-</span>
+                              )}
                             </button>
                             <span className="w-8 text-center text-sm sm:text-base font-medium">{cartItem.quantity}</span>
                             <button
@@ -427,8 +390,13 @@ const Cart = () => {
                           <button
                             className="border h-8 w-8 rounded-full flex items-center justify-center bg-white shadow-sm hover:bg-gray-50 active:bg-gray-100 text-gray-600"
                             onClick={() => handleDecrement(cartItem)}
+                            aria-label={cartItem.quantity === 1 ? "Remove item" : "Decrease quantity"}
                           >
-                            -
+                            {cartItem.quantity === 1 ? (
+                              <MdDelete className="text-red-500" size={16} />
+                            ) : (
+                              <span className="text-gray-600">-</span>
+                            )}
                           </button>
                           <span className="w-8 text-center font-medium">{cartItem.quantity}</span>
                           <button
@@ -468,20 +436,22 @@ const Cart = () => {
                 Order Summary
               </h1>
               
-              {/* Shipping Options */}
-              <div className="mb-4 sm:mb-5">
-                <label className="font-medium text-sm sm:text-base uppercase block mb-2">
-                  Choose Shipping
-                </label>
-                <select
-                  className="w-full p-2.5 sm:p-3 text-gray-600 text-sm sm:text-base border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  value={shippingCost}
-                  onChange={(e) => setShippingCost(Number(e.target.value))}
-                >
-                  <option value={200}>Standard shipping - ₹200.00</option>
-                  <option value={500}>Express shipping - ₹500.00</option>
-                </select>
-              </div>
+              {/* Shipping Section */}
+              {subtotal < 10000 ? (
+                <div className="mb-4 sm:mb-5">
+                  <label className="font-medium text-sm sm:text-base uppercase block mb-2">
+                    Choose Shipping
+                  </label>
+                  <select
+                    className="w-full p-2.5 sm:p-3 text-gray-600 text-sm sm:text-base border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    value={shippingCost}
+                    onChange={(e) => setShippingCost(Number(e.target.value))}
+                  >
+                    <option value={200}>Standard shipping - ₹200.00</option>
+                    <option value={500}>Express shipping - ₹500.00</option>
+                  </select>
+                </div>
+              ) : null}
 
               {/* Promo Code */}
               <div className="mb-4 sm:mb-5">
@@ -554,7 +524,11 @@ const Cart = () => {
                     Shipping Cost
                   </span>
                   <span className="font-semibold text-sm sm:text-base">
-                    ₹{shippingCost.toFixed(2)}
+                    {subtotal >= 10000 ? (
+                      <span className="text-green-600">Free</span>
+                    ) : (
+                      `₹${shippingCost.toFixed(2)}`
+                    )}
                   </span>
                 </div>
 

@@ -26,3 +26,4 @@ Thumbs.db
 **/.mvn/
 **/mvnw
 **/mvnw.cmd
+/help-images

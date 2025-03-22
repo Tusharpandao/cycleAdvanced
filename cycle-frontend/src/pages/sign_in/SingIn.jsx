@@ -1,15 +1,16 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
-import axios from "../../utils/axiosConfig";
 import Swal from "sweetalert2";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { FaCalculator, FaBicycle } from "react-icons/fa";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../hooks/useAuth";
-import DomainName from "../../utils/config";
+import { authAPI } from "../../utils/api";
+import { useCart } from "../../context/CartContext";
 
 function SignIn() {
   const { login } = useAuth();
+  const { updateCartCount } = useCart();
   const { t } = useTranslation();
   const [formData, setFormData] = useState({
     username: "",
@@ -73,7 +74,6 @@ function SignIn() {
       return;
     }
 
-    // Convert username to lowercase before submitting
     const submissionData = {
       ...formData,
       username: formData.username.toLowerCase(),
@@ -89,12 +89,21 @@ function SignIn() {
     });
 
     try {
-      const response = await axios.post(
-        `${DomainName}/auth/signIn`,
-        submissionData
-      );
-      if (response.data) {
-        login(response.data);
+      const token = await authAPI.signIn(submissionData);
+      if (token) {
+        // First login with the token
+        login(token);
+
+        try {
+          // Then fetch cart count using the auth API
+          const cartCount = await authAPI.getCartCount();
+          updateCartCount(cartCount);
+        } catch (error) {
+          console.error("Error fetching cart count:", error);
+          // Set cart count to 0 if there's an error
+          updateCartCount(0);
+        }
+
         await Swal.fire({
           icon: "success",
           title: "Login Successful!",
@@ -102,6 +111,7 @@ function SignIn() {
           timer: 1500,
           showConfirmButton: false,
         });
+        
         navigate(redirectTo);
       } else {
         throw new Error("No token received from server");
@@ -111,9 +121,7 @@ function SignIn() {
       Swal.fire({
         icon: "error",
         title: "Login Failed",
-        text:
-          error.response?.data?.message ||
-          "Invalid credentials. Please try again.",
+        text: error.response?.data?.message || "Invalid credentials. Please try again.",
       });
       setErrors({
         username: "Invalid username or password",

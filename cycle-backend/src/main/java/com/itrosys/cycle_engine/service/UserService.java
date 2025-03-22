@@ -1,7 +1,7 @@
 package com.itrosys.cycle_engine.service;
 
 import com.itrosys.cycle_engine.entity.Role;
-import com.itrosys.cycle_engine.entity.Users;
+import com.itrosys.cycle_engine.entity.User;
 import com.itrosys.cycle_engine.exception.BadCredentials;
 import com.itrosys.cycle_engine.exception.EmailAlreadyExists;
 import com.itrosys.cycle_engine.exception.UsernameAlreadyExists;
@@ -36,13 +36,13 @@ public class UserService {
         this.roleRepository=roleRepository;
     }
 
-//    public Users register(Users user) {
+//    public User register(User user) {
 //
 //        user.setPassword(passwordEncoder.encode(user.getPassword()));
 //        return userRepository.save(user);
 //    }
-public Users register(Users user) {
-    List<Users> existingUsers = userRepository.findByUsernameOrEmail(user.getUsername(), user.getEmail());
+public User register(User user) {
+    List<User> existingUsers = userRepository.findByUsernameOrEmail(user.getUsername(), user.getEmail());
 
     if (!existingUsers.isEmpty()) {
         boolean usernameExists = existingUsers.stream().anyMatch(u -> u.getUsername().equals(user.getUsername()));
@@ -69,7 +69,7 @@ public Users register(Users user) {
 
 
 
-    public String verify(Users user) {
+    public String verify(User user) {
         try {
             Authentication authentication = authManager.authenticate(
                     new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword())
@@ -83,7 +83,7 @@ public Users register(Users user) {
     }
 
 
-//    public String verify(Users user) {
+//    public String verify(User user) {
 //        try {
 //            Authentication authentication = authManager.authenticate(
 //                    new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword())

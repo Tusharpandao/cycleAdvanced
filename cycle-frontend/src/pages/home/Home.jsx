@@ -1,5 +1,3 @@
-import { Link } from "react-router-dom";
-import { hasManagementAccess } from "../../utils/auth";
 import TypingHeader from "./TypingHeader";
 import { useState } from "react";
 
@@ -33,17 +31,6 @@ function Home() {
           updates to ensure your pricing is always optimized. Explore our features and take your business 
           to the next level.
         </p>
-        
-        {hasManagementAccess() ? (
-          <div className="flex gap-5 items-center justify-center">
-            <Link to="/brand" className="px-6 py-3 bg-green-900 hover:bg-green-700 text-white rounded shadow-lg transition duration-300">
-              Manage Brands
-            </Link>
-            <Link to="/items" className="px-6 py-3 bg-green-700 hover:bg-green-500 text-white rounded shadow-lg transition duration-300">
-              Manage Items
-            </Link>
-          </div>
-        ) : (<></> )}
       </div>
     </div>
   );

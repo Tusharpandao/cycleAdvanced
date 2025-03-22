@@ -3,7 +3,6 @@ package com.itrosys.cycle_engine.controller;
 import com.itrosys.cycle_engine.dto.CartRequest;
 import com.itrosys.cycle_engine.dto.CartResponse;
 import com.itrosys.cycle_engine.dto.QuantityCart;
-import com.itrosys.cycle_engine.entity.Cart;
 import com.itrosys.cycle_engine.service.CartService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -32,6 +31,10 @@ public class CartController {
         return ResponseEntity.ok(cartService.getCart());
     }
 
+    @GetMapping("/cartItemCount")
+    public ResponseEntity<Integer> getCartItemCount(){
+        return ResponseEntity.ok(cartService.getCartItemCount());
+    }
     @PatchMapping("/update-quantity")
     public ResponseEntity<String> handleIncrementQuantity(@RequestBody QuantityCart quantityCart){
         return ResponseEntity.ok(cartService.handleUpdateQuantity(quantityCart));
@@ -45,4 +48,5 @@ public class CartController {
     public ResponseEntity<String> handleClearCartForUser(@PathVariable("userName") String userName){
         return ResponseEntity.ok(cartService.clearCartForUser(userName));
     }
+
 }

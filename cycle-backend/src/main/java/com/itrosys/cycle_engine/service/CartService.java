@@ -40,23 +40,21 @@ public class CartService {
         this.brandRepository = brandRepository;
     }
 
-    private String getLoggedInUsername() {
+    private Long getLoggedInUserId() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (principal instanceof UserDetails userDetails) {
-            return userDetails.getUsername();
+        if (principal instanceof CustomUserDetails userDetails) {
+            return userDetails.getId();
         } else {
-            return principal.toString();
+            throw new IllegalStateException("User ID not found in authentication context");
         }
     }
 
 
     @Transactional
     public String addToCart(CartRequest cartRequest) {
-        Users user = userRepository.findByUsername(getLoggedInUsername());
-        if (user == null) {
-            throw new UsernameNotFoundException("User Not Found");
-        }
 
+        User user = userRepository.findById(getLoggedInUserId())
+                .orElseThrow(() -> new UsernameNotFoundException("User Not Found"));
         // Fetch or create brand based on the name
         Brand brand = brandRepository.findByBrandName(cartRequest.getBrand())
                 .orElseThrow(() -> new BrandNotFound("Brand name with" + cartRequest.getBrand() + "not Present"));
@@ -78,16 +76,14 @@ public class CartService {
 
         cart.setCartItems(cartItems);
 
-       cartRepository.save(cart);
+        cartRepository.save(cart);
 
         return "Cycle Added successfully";
     }
 
     public List<CartResponse> getCart() {
-        Users user = userRepository.findByUsername(getLoggedInUsername());
-        if (user == null) {
-            throw new UsernameNotFoundException("User Not Found");
-        }
+        User user = userRepository.findById(getLoggedInUserId())
+                .orElseThrow(() -> new UsernameNotFoundException("User Not Found"));
 
         List<Cart> carts = cartRepository.findByUser(user);
         if (carts.isEmpty()) {
@@ -130,6 +126,7 @@ public class CartService {
 
         return cartResponses;
     }
+
     public String handleUpdateQuantity(QuantityCart quantityCart) {
         Cart cart = cartRepository.findById(quantityCart.getCartId())
                 .orElseThrow(() -> new CartNotFound("Cart with cartId " + quantityCart.getCartId() + " not found"));
@@ -154,7 +151,7 @@ public class CartService {
     }
 
     public String clearCartForUser(String userName) {
-        Users user = userRepository.findByUsername(userName);
+        User user = userRepository.findByUsername(userName);
         if (user == null) {
             throw new UsernameNotFoundException("User Not Found: " + userName);
         }
@@ -169,4 +166,9 @@ public class CartService {
         return "All carts for user " + userName + " have been deleted successfully.";
     }
 
+    public Integer getCartItemCount() {
+
+        Long userId = getLoggedInUserId();
+        return cartRepository.getCartItemCountByUserId(userId);
+    }
 }

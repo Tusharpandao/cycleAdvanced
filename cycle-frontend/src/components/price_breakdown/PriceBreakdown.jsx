@@ -1,10 +1,21 @@
+import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import image from "../../assets/cycleImg.webp";
-import DomainName from "../../utils/config";
-import axios from "axios";
-import { getAuthHeader } from "../../utils/auth";
+import cycle1 from "../../assets/cycle1.webp";
+import cycle2 from "../../assets/cycle2.webp";
+import cycle3 from "../../assets/cycle3.webp";
+import cycle4 from "../../assets/cycle4.webp";
+import { cartAPI } from "../../utils/api";
 
 function PriceBreakdown({ priceData, handleClear }) {
+  const navigate = useNavigate();
+
+  // Brand to image mapping
+  const brandImageMap = {
+    'Honda': cycle1,
+    'Tata': cycle2,
+    'Atlas': cycle3,
+    'Hero': cycle4
+  };
 
   const handleAddToCart = async () => {
     // Create toast mixin
@@ -28,17 +39,19 @@ function PriceBreakdown({ priceData, handleClear }) {
       // Extract itemIds from parts
       const itemIds = Object.values(priceData.parts).map(part => part.itemId);
 
+      // Get the correct image based on brand
+      const thumbnailImage = brandImageMap[priceData.brand] || cycle1; // Default to cycle1 if brand not found
+
       // Prepare API request body
       const apiRequestBody = {
         brand: priceData.brand,
         itemIds: itemIds,
-        thumbnail: image,
+        thumbnail: thumbnailImage,
         quantity: 1
       };
-      console.log(apiRequestBody);
 
-      // Make API call and wait for response
-      const response = await axios.post(`${DomainName}/cart/add`, apiRequestBody, getAuthHeader());
+      // Make API call using cartAPI
+      await cartAPI.addToCart(apiRequestBody);
       
       // Update toast to success
       Toast.fire({
@@ -49,6 +62,10 @@ function PriceBreakdown({ priceData, handleClear }) {
       });
 
       handleClear();
+      // Navigate to cart after success
+      setTimeout(() => {
+        navigate('/cart');
+      }, 1500);
       
     } catch (error) {
       console.error("Error adding to cart:", error);
@@ -75,7 +92,7 @@ function PriceBreakdown({ priceData, handleClear }) {
     <>
       <div className="container">
         <h3 className="text-center font-bold pb-2 md:text-4xl text-2xl md:mb-4 text-[#213832]">
-          {priceData.brand} Cycle Price
+          <span className="text-blue-700">{priceData.brand}</span> Cycle Price
         </h3>
         <div className="price-table-container">
           <table className="price-table">
@@ -103,13 +120,6 @@ function PriceBreakdown({ priceData, handleClear }) {
               </tr>
               <tr className="total-row">
                 <td colSpan="3" style={{ textAlign: "center" }} className="space-x-4">
-                  {/* <button
-                    id="saveEstimate"
-                    onClick={handleSaveEstimate}
-                    className="bg-blue-500 text-white font-bold p-2 rounded-md hover:bg-blue-600 transition-colors"
-                  >
-                    Save Estimated Price
-                  </button> */}
                   <button
                     onClick={handleAddToCart}
                     className="bg-green-500 text-white font-bold p-2 rounded-md hover:bg-green-600 transition-colors ml-4"
