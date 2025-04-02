@@ -53,7 +53,7 @@ export const hasManagementAccess = () => {
     return false;
   }
 
-  const hasAccess =userRole =='EMPLOYEE'|| userRole === 'ADMIN' || userRole === 'MANAGER';
+  const hasAccess = userRole === 'ADMIN' || userRole === 'MANAGER';
   // console.log('Has management access:', hasAccess);
   return hasAccess;
 };
@@ -238,6 +238,21 @@ export const getUserEmail = () => {
     return payload.email || null;
   } catch (error) {
     console.error('Error extracting email from token:', error);
+    return null;
+  }
+};
+
+// Add this new function to get user ID from token
+export const getUserId = () => {
+  const token = getToken();
+  if (!token) return null;
+
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    // The userId is directly available in the token payload
+    return payload.userId || null;
+  } catch (error) {
+    console.error('Error extracting user ID from token:', error);
     return null;
   }
 };
