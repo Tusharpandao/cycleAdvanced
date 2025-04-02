@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+
     @ExceptionHandler(ExpiredJwtException.class)
     public ResponseEntity<String> handleExpireToken(ExpiredJwtException ex){
         return new ResponseEntity<>("Token Expire Login Again", HttpStatus.UNAUTHORIZED);
@@ -78,4 +79,13 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(e.getMessage(),HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(DuplicateCoupons.class)
+    public ResponseEntity<String> handleDuplicateCoupons(DuplicateCoupons ex){
+        return new ResponseEntity<>(ex.getMessage() ,HttpStatus.NOT_ACCEPTABLE);
+    }
+
+    @ExceptionHandler(CouponNotFound.class)
+    public ResponseEntity<String> handleCouponNotFound(CouponNotFound  ex){
+        return new ResponseEntity<>(ex.getMessage(),HttpStatus.NOT_FOUND);
+    }
 }

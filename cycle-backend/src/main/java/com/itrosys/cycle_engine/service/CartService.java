@@ -1,26 +1,29 @@
 package com.itrosys.cycle_engine.service;
 
+import java.math.BigDecimal;
+import java.util.*;
+
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.itrosys.cycle_engine.config.UserInfo;
 import com.itrosys.cycle_engine.dto.CartRequest;
 import com.itrosys.cycle_engine.dto.CartResponse;
 import com.itrosys.cycle_engine.dto.QuantityCart;
-import com.itrosys.cycle_engine.entity.*;
+import com.itrosys.cycle_engine.entity.Brand;
+import com.itrosys.cycle_engine.entity.Cart;
+import com.itrosys.cycle_engine.entity.CartItem;
+import com.itrosys.cycle_engine.entity.CustomUserDetails;
+import com.itrosys.cycle_engine.entity.Item;
+import com.itrosys.cycle_engine.entity.User;
 import com.itrosys.cycle_engine.exception.BrandNotFound;
 import com.itrosys.cycle_engine.exception.CartNotFound;
 import com.itrosys.cycle_engine.repository.BrandRepository;
 import com.itrosys.cycle_engine.repository.CartRepository;
 import com.itrosys.cycle_engine.repository.ItemRepository;
 import com.itrosys.cycle_engine.repository.UserRepository;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 @Service
 public class CartService {
@@ -40,49 +43,45 @@ public class CartService {
         this.brandRepository = brandRepository;
     }
 
-    private Long getLoggedInUserId() {
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (principal instanceof CustomUserDetails userDetails) {
-            return userDetails.getId();
-        } else {
-            throw new IllegalStateException("User ID not found in authentication context");
-        }
-    }
+  
+
 
 
     @Transactional
-    public String addToCart(CartRequest cartRequest) {
+    public Map<String, Object> addToCart(CartRequest cartRequest) {
 
-        User user = userRepository.findById(getLoggedInUserId())
+        User user = userRepository.findById(UserInfo.getLoggedInUserId())
                 .orElseThrow(() -> new UsernameNotFoundException("User Not Found"));
-        // Fetch or create brand based on the name
+
         Brand brand = brandRepository.findByBrandName(cartRequest.getBrand())
-                .orElseThrow(() -> new BrandNotFound("Brand name with" + cartRequest.getBrand() + "not Present"));
+                .orElseThrow(() -> new BrandNotFound("Brand name with " + cartRequest.getBrand() + " not Present"));
 
-
-        // Fetch the list of items
         List<Item> items = itemRepository.findAllById(cartRequest.getItemIds());
 
-        // Create Cart and set required fields
         Cart cart = new Cart();
         cart.setUser(user);
         cart.setBrand(brand);
         cart.setQuantity(cartRequest.getQuantity());
         cart.setThumbnail(cartRequest.getThumbnail());
-        // Create CartItem list and assign to Cart
+
         List<CartItem> cartItems = items.stream()
                 .map(item -> new CartItem(cart, item))
                 .toList();
 
         cart.setCartItems(cartItems);
 
-        cartRepository.save(cart);
+        Cart savedCart = cartRepository.save(cart);
 
-        return "Cycle Added successfully";
+        // Creating a response map
+        Map<String, Object> response = new HashMap<>();
+        response.put("cartId", savedCart.getCartId());
+        response.put("message", "Cycle Added successfully");
+
+        return response;
     }
 
     public List<CartResponse> getCart() {
-        User user = userRepository.findById(getLoggedInUserId())
+        User user = userRepository.findById(UserInfo.getLoggedInUserId())
                 .orElseThrow(() -> new UsernameNotFoundException("User Not Found"));
 
         List<Cart> carts = cartRepository.findByUser(user);
@@ -104,6 +103,7 @@ public class CartService {
                 partDetails.put("itemId", item.getItemId());
                 partDetails.put("itemName", item.getItemName());
                 partDetails.put("price", item.getPrice());
+
 
                 parts.put(partType, partDetails);
                 partPrice = partPrice.add(item.getPrice());
@@ -168,7 +168,7 @@ public class CartService {
 
     public Integer getCartItemCount() {
 
-        Long userId = getLoggedInUserId();
+        Long userId = UserInfo.getLoggedInUserId();
         return cartRepository.getCartItemCountByUserId(userId);
     }
 }

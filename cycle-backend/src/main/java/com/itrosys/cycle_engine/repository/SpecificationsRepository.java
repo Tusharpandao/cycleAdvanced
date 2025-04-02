@@ -1,10 +1,9 @@
 package com.itrosys.cycle_engine.repository;
 
-import com.itrosys.cycle_engine.entity.Role;
+import com.itrosys.cycle_engine.entity.Specifications;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface RoleRepository extends JpaRepository<Role, Long> {
-    Role findByName(String name);
-}
+public interface SpecificationsRepository extends JpaRepository<Specifications, Long> {
+} 
