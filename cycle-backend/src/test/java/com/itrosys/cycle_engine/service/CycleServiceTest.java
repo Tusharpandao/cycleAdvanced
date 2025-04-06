@@ -1,13 +1,13 @@
 package com.itrosys.cycle_engine.service;
 
-import com.itrosys.cycle_engine.dto.BrandResponse;
-import com.itrosys.cycle_engine.dto.Cycle;
-import com.itrosys.cycle_engine.dto.CycleResponse;
-import com.itrosys.cycle_engine.entity.Brand;
-import com.itrosys.cycle_engine.exception.BrandNotFound;
-import com.itrosys.cycle_engine.exception.ItemNotFound;
-import com.itrosys.cycle_engine.repository.BrandRepository;
-import com.itrosys.cycle_engine.repository.ItemRepository;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.List;
+import java.util.Map;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -15,11 +15,11 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
+import com.itrosys.cycle_engine.dto.BrandResponse;
+import com.itrosys.cycle_engine.dto.Cycle;
+import com.itrosys.cycle_engine.dto.CycleResponse;
+import com.itrosys.cycle_engine.exception.BrandNotFound;
+import com.itrosys.cycle_engine.exception.ItemNotFound;
 
 
 @SpringBootTest
@@ -66,14 +66,14 @@ class CycleServiceTest {
     @Test
     void testGetGroupedItemNameAndTypeByBrandName_InactiveBrand() {
 
-        Exception exception = assertThrows(BrandNotFound.class, () -> cycleService.getGroupedItemNameAndTypeByBrandName(2));
+        Exception exception = assertThrows(BrandNotFound.class, () -> cycleService.getGroupedItemNameAndTypeByBrandName(5));
         System.out.println("Test Passed: " + exception.getMessage());
     }
 
     @Test
     void testGetGroupedItemNameAndTypeByBrandName_NoItemsFound() {
 
-        Exception exception = assertThrows(ItemNotFound.class, () -> cycleService.getGroupedItemNameAndTypeByBrandName(25));
+        Exception exception = assertThrows(ItemNotFound.class, () -> cycleService.getGroupedItemNameAndTypeByBrandName(6));
         System.out.println("Test Passed: " + exception.getMessage());
     }
 
@@ -85,7 +85,7 @@ class CycleServiceTest {
         assertNotNull(response);
         System.out.println("Test Passed: " + response);
     }
-//
+    //
     @Test
     void testCalculateTotalPrice_NullParts() {
         Cycle cycle = new Cycle(1, 76, 51, 1,
@@ -104,7 +104,7 @@ class CycleServiceTest {
 
     @Test
     void testCalculateTotalPrice_InactiveBrand() {
-        Cycle cycle = new Cycle(2, 76, 51, 1,
+        Cycle cycle = new Cycle(5, 76, 51, 1,
                 36, 61, 81, 16);
         Exception exception = assertThrows(BrandNotFound.class, () -> cycleService.calculateTotalPrice(cycle));
         System.out.println("Test Passed: " + exception.getMessage());

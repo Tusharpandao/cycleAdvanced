@@ -1,5 +1,5 @@
-import axios from 'axios';
-import { getAuthHeader, getUserId, getUserName, getUserEmail } from './auth';
+import { getUserId, getUserName, getUserEmail } from './auth';
+import { paymentAPI } from './api';
 import logo from '../assets/logo.png';
 
 // Load Razorpay script
@@ -20,7 +20,7 @@ export const loadRazorpay = async () => {
 };
 
 // Generic create order function that can be used with any type of order
-export const    createOrder = async (orderRequest) => {
+export const createOrder = async (orderRequest) => {
   try {
     // Add userId from auth.js
     const userId = getUserId();
@@ -29,17 +29,7 @@ export const    createOrder = async (orderRequest) => {
       userId
     };
     console.log(finalOrderRequest);
-    const response = await axios.post(
-      "http://localhost:8080/payments/create-order",
-      finalOrderRequest,
-      getAuthHeader()
-    );
-    
-    if (!response.data.orderId) {
-      throw new Error("Failed to create order");
-    }
-    
-    return response.data;
+    return await paymentAPI.createOrder(finalOrderRequest);
   } catch (error) {
     console.error("Error creating order:", error);
     throw error;
@@ -49,17 +39,7 @@ export const    createOrder = async (orderRequest) => {
 // Verify payment
 export const verifyPayment = async (paymentData) => {
   try {
-    const verificationResponse = await axios.post(
-      "http://localhost:8080/payments/verify-payment",
-      {
-        orderId: paymentData.razorpay_order_id,
-        paymentId: paymentData.razorpay_payment_id,
-        signature: paymentData.razorpay_signature,
-      },
-      getAuthHeader()
-    );
-    
-    return verificationResponse.data;
+    return await paymentAPI.verifyPayment(paymentData);
   } catch (error) {
     console.error("Payment verification failed:", error);
     throw error;

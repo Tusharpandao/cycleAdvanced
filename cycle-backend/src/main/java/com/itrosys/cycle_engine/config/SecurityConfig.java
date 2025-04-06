@@ -2,6 +2,7 @@ package com.itrosys.cycle_engine.config;
 
 import com.itrosys.cycle_engine.filter.JwtFilter;
 import com.itrosys.cycle_engine.service.MyUserDetailsService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -20,7 +21,9 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
@@ -30,8 +33,8 @@ public class SecurityConfig {
     private final MyUserDetailsService myUserDetailsService;
     private final JwtFilter jwtFilter;
 
-//    @Value("${cors.allowedOrigins}")
-//    private String allowedOrigins;
+    @Value("${cors.allowed-origins}")
+    private String allowedOrigins;
 
     public SecurityConfig(MyUserDetailsService myUserDetailsService, JwtFilter jwtFilter) {
         this.myUserDetailsService = myUserDetailsService;
@@ -71,7 +74,8 @@ public class SecurityConfig {
     @Bean
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173"));
+//        config.setAllowedOrigins(List.of("http://localhost:5173"));
+        config.setAllowedOrigins(Arrays.stream(allowedOrigins.split(",")).map(String::trim).collect(Collectors.toList()));
         config.setAllowedMethods(List.of("GET", "POST", "PUT","PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

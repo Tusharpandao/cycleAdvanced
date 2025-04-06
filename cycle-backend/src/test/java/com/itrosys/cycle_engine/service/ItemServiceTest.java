@@ -42,7 +42,7 @@ class ItemServiceTest {
     //        This is getItemsByBrandName method test cases
     @Test
     void getItemsByBrandName_Success() {
-        String brandName = "AVON";
+        String brandName = "Jagur";
         List<ItemResponse> items = itemService.getItemsByBrandName(brandName);
         assertNotNull(items);
         assertFalse(items.isEmpty());
@@ -52,7 +52,7 @@ class ItemServiceTest {
 
     @Test
     void getItemsByBrandName_BrandNotFound() {
-        String brandName = "TATA";
+        String brandName = "BMW";
         Exception ex = assertThrows(BrandNotFound.class, () -> itemService.getItemsByBrandName(brandName));
         System.out.println("Test Passed: " + ex.getMessage());
 
@@ -60,7 +60,7 @@ class ItemServiceTest {
 
     @Test
     void getItemsByBrandName_BrandInactive() {
-        String brandName = "GIANT";
+        String brandName = "avon";
 
         Exception ex = assertThrows(BrandNotFound.class, () -> itemService.getItemsByBrandName(brandName));
         System.out.println("Test Passed: " + ex.getMessage());
@@ -69,14 +69,14 @@ class ItemServiceTest {
 
     @Test
     void getItemsByBrandName_NoItemsFound() {
-        String brandName = "SONY";
+        String brandName = "Tata";
         Exception ex = assertThrows(ItemNotFound.class, () -> itemService.getItemsByBrandName(brandName));
         System.out.println("Test Passed: " + ex.getMessage());
     }
 
     @Test
     void getItemsByBrandName_NoActiveItems() {
-        String brandName = "SCHWINN";
+        String brandName = "Tata";
         Exception ex = assertThrows(ItemNotFound.class, () -> itemService.getItemsByBrandName(brandName));
         System.out.println("Test Passed: " + ex.getMessage());
 

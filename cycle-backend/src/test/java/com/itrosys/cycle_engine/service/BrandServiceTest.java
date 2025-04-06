@@ -29,7 +29,7 @@ class BrandServiceTest {
     @Test
     @WithMockUser(username = "testUser", roles = {"ADMIN"})
     void testAddBrand_DuplicateActiveBrand() {
-        Exception exception = assertThrows(DuplicateBrand.class, () -> brandService.addBrand("HERO"));
+        Exception exception = assertThrows(DuplicateBrand.class, () -> brandService.addBrand("Jagur"));
         System.out.println(" Test Passed: " + exception.getMessage());
     }
 
@@ -37,11 +37,12 @@ class BrandServiceTest {
     @Test
     @WithMockUser(username = "testUser", roles = {"ADMIN"})
     void testAddBrand_ReactivateBrand() {
-        BrandResponse response = brandService.addBrand("GIANT");
+        BrandResponse response = brandService.addBrand("avon");
         assertNotNull(response);
-        assertEquals("GIANT", response.getName());
+        assertEquals("avon", response.getName());
         System.out.println(" Test Passed: " + response);
     }
+
 
     // pass when  brand not completely not present in database
     @Test
@@ -66,7 +67,7 @@ class BrandServiceTest {
     @Test
     @WithMockUser(username = "testUser", roles = {"ADMIN"})
     void testUpdateBrand_AllReadyUpdated() {
-        Exception exception = assertThrows(DuplicateBrand.class, () -> brandService.updateBrandName(2, "GIANT"));
+        Exception exception = assertThrows(DuplicateBrand.class, () -> brandService.updateBrandName(1, "Jagur"));
         System.out.println("Test Pass : " + exception.getMessage());
     }
 
@@ -82,9 +83,9 @@ class BrandServiceTest {
     @Test
     @WithMockUser(username = "testUser", roles = {"ADMIN"})
     void testUpdateBrand_Success() {
-        BrandResponse response = brandService.updateBrandName(2, "TATA");
+        BrandResponse response = brandService.updateBrandName(2, "Maruti");
         assertNotNull(response);
-        assertEquals("TATA", response.getName());
+        assertEquals("Maruti", response.getName());
         System.out.println("Test Pass : " + response);
     }
 

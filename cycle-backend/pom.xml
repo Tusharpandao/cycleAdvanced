@@ -20,6 +20,7 @@
     <developers>
         <developer/>
     </developers>
+    <packaging>war</packaging>
     <scm>
         <connection/>
         <developerConnection/>

@@ -39,6 +39,7 @@ export const authAPI = {
         `${DomainName}/cart/cartItemCount`,
         getAuthHeader()
       );
+      console.log("cart count from auth api",response.data);
       return response.data;
     } catch (error) {
       console.error('Error fetching cart count:', error);
@@ -87,6 +88,7 @@ export const cartAPI = {
         `${DomainName}/cart/cartItemCount`,
         getAuthHeader()
       );
+      console.log("cart count from cart api",response.data);
    
       return response.data;
     } catch (error) {
@@ -579,6 +581,49 @@ export const couponAPI = {
       return response.data;
     } catch (error) {
       console.error('Error deleting coupon:', error);
+      throw error;
+    }
+  }
+};
+
+// Payment API functions
+export const paymentAPI = {
+  // Create order
+  createOrder: async (orderRequest) => {
+    try {
+      const response = await axios.post(
+        `${DomainName}/payments/create-order`,
+        orderRequest,
+        getAuthHeader()
+      );
+      
+      if (!response.data.orderId) {
+        throw new Error("Failed to create order");
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error("Error creating order:", error);
+      throw error;
+    }
+  },
+
+  // Verify payment
+  verifyPayment: async (paymentData) => {
+    try {
+      const verificationResponse = await axios.post(
+        `${DomainName}/payments/verify-payment`,
+        {
+          orderId: paymentData.razorpay_order_id,
+          paymentId: paymentData.razorpay_payment_id,
+          signature: paymentData.razorpay_signature,
+        },
+        getAuthHeader()
+      );
+      
+      return verificationResponse.data;
+    } catch (error) {
+      console.error("Payment verification failed:", error);
       throw error;
     }
   }
